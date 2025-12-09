@@ -1,0 +1,33 @@
+---
+- hosts: uat
+  become: yes
+  tasks:
+    - name: Create a directory
+      file:
+        path: "/root/{{ mq_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy the fixpack
+      copy:
+        src: "/root/{{ mq_pack }}"
+        dest: "/root/{{ mq_dir }}"
+
+    - name: Extract fixpack
+      unarchive:
+        src: "/root/{{ mq_dir }}/{{ mq_pack }}"
+        dest: "/root/{{ mq_dir }}"
+        remote_src: yes
+
+    - name: Accept license
+      shell: ./mqlicense.sh -accept
+      args:
+        chdir: /root/{{ mq_dir }}/MQServer
+
+    - name: Install Packages
+      shell: rpm -Uvh MQSeriesRuntime-* MQSeriesJava* MQSeriesSDK* MQSeriesServer* MQSeriesJRE* MQSeriesSamples* MQSeriesGSKit* MQSeriesWeb* MQSeriesClient*
+      args:
+        chdir: /root/{{ mq_dir }}/MQServer
+
+    - name: Version 
+      command: dspmqver
