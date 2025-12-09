@@ -1,0 +1,43 @@
+---
+- hosts: prod
+  become: true
+  tasks:
+    - name: Create a directory
+      file:
+        path: /root/mq9.4.0.16
+        state: directory
+        mode: 777
+
+    - name: Copying MQ Package
+      copy:
+        src: "/root/{{mqpack}}"
+        dest: "/root/mq9.4.0.16"
+    - name: Package Extracted
+      unarchive:
+        src: "/root/mq9.4.0.16/{{mqpack}}"
+        dest: "/root/mq9.4.0.16"
+        remote_src: yes
+
+    - name: Accept license
+      shell: ./mqlicense.sh -accept
+      args:
+        chdir: /root/mq9.4.0.16/MQServer
+
+    - name: Installing Packages
+      shell: rpm -Uvh MQSeriesRuntime-* MQSeriesJava* MQSeriesSDK* MQSeriesServer* MQSeriesJRE* MQSeriesSamples* MQSeriesGSKit* MQSeriesWeb* MQSeriesClient*
+      args:
+        chdir: /root/mq9.4.0.16/MQServer
+      ignore_errors: yes
+
+    - name: Setting environment
+      shell: ./setmqinst -i -n Installation1
+      args:
+        chdir: /opt/mqm/bin
+
+    - name: checking MQ version
+      command: dspmqver
+      register: version
+     
+    - name: output
+      debug:
+        msg: my MQ Version is {{ version.stdout }}
